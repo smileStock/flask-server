@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="kr">
+<head>
+	<meta charset="UTF-8">
+    <title>Naver News</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+</head>
+<body>
+    
+    <h2>SmileStock</h2>    
+    <form>
+        <!-- Input Form -->
+        <label for="Date">Date:</label>
+        <input type="date" id="startDate" name="startDate">
+
+        <label for="endDate">~</label>
+        <input type="date" id="endDate" name="endDate">
+        
+        <!-- <label for="interval">Interval:</label> -->
+        <select id="interval" name="interval">
+            <option value="1d">1d</option>
+            <option value="1h" selected>1h</option>
+            <option value="60m">60m</option>
+            <option value="30m">30m</option>
+            <option value="1m">1m</option>
+        </select>
+
+        <label for="exchange">Exchange:</label>
+        <select id="exchange" name="exchange">
+            <option value="KRX" selected>KRX</option>
+            <option value="NYSE">NYSE</option>
+            <option value="NASDAQ">NASDAQ</option>
+            <option value="AMEX">AMEX</option>
+        </select>
+
+        <label for="symbol">Symbol:</label>
+        <input type="symbol" id="symbol" name="symbol" value="005930" OnKeyDown="CheckEnter(this.form,this)">
+        <!-- 
+        <input type="button" value="Get Stocks" onclick="stocks_submitForm( 'GetStocks' )">
+        --> 
+        <input type="button" value="Get Company" onclick="stocks_submitForm( 'GetCompany' )">
+        <input type="button" value="Update Company" onclick="stocks_submitForm( 'UpdateCompany' )">
+        <input type="button" value="Get News" onclick="stocks_submitForm( 'GetNews' )">
+
+    </form>
+
+    <span id="Query", style="font:bold 1.2em; color: blue;" >
+        <!-- Query -->   
+    </span>
+
+    <h2 id="StockResult">Stocks:</h2>
+    <div id="StockResultBox" style="border: 1px solid; padding: 10px; width: auto; height: 220px; overflow:auto;">
+
+        <table id="StockResultTable">
+            <thead>
+                <tr>
+                    <th style="width: 110px;">Datetime</th>
+                    <th>Open</th>
+                    <th>High</the=>
+                    <th>Low</th>
+                    <th>Close</th>
+                    <th>Volume</th>
+                 </tr>
+            </thead>
+            <tbody>
+                <!-- Result -->
+            </tbody>
+        </table>
+
+        <!-- Page No. -->
+        <div id="StockPageNumbers" style="text-align: center;"></div>
+
+    </div>
+
+    <h2 id="NewsResult">Company:</h2>
+    <div id="NewsResultBox" style="border: 1px solid; padding: 10px; width: auto; height: 390px; overflow:auto;">
+
+        <table id="NewsResultTable">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <!-- <th>Link</th> -->
+                    <th>Press</th>
+                    <th style="width: 110px;">Datetime</th>
+                    <th>Emotion</th>
+                 </tr>
+            </thead>
+            <tbody>
+                <!-- Result -->
+            </tbody>
+        </table>
+
+        <!-- Page No. -->
+        <div id="NewsPageNumbers" style="text-align: center;"></div>
+
+    </div>
+
+
+    <h2 id="classification">Emotion:</h2>
+    <div style="border: 1px solid; padding: 10px; width: auto; height: 60px;">
+
+        <form action="" name="articleForm">
+            <input type="text" name="article" style="width: 96%; height: 50px;"/>
+            <input type="button" value="분석" onclick="classification_submitForm()">
+        </form>
+        <br>
+ 
+    </div>
+
+    <h2 id="dash">Dash:</h2>
+    <div style="border: 1px solid; padding: 10px; width: auto; height: 210px;">
+
+        <iframe style="width: 100%; border: 0px;" src="/dash1/">
+            <p>현재 사용 중인 브라우저는 iframe 요소를 지원하지 않습니다!</p>
+        </iframe>
+     
+    </div>
+
+
+
+    <script>
+
+        <!-- Stock Hide. -->
+        document.getElementById("interval").style.display ='none';
+        document.getElementById("StockResult").style.display ='none';
+        document.getElementById("StockResultBox").style.display ='none';
+        document.getElementById("StockResultTable").style.display ='none';
+        document.getElementById("StockPageNumbers").style.display ='none';
+
+        setQueryDate();
+
+        function setQueryDate() {
+
+            var minDate = getPreviousDate( 30 )
+            var recentDate = getPreviousDate( 0 )
+            var maxDate = getPreviousDate( 0 )
+
+            console.log( "setQueryDate():", "minDate:", minDate, "recentDate:", recentDate, "maxDate:", maxDate );
+            
+            document.getElementById("startDate").setAttribute("min", minDate);
+            document.getElementById("startDate").setAttribute("max", maxDate);
+            document.getElementById("startDate").setAttribute("value", recentDate);
+
+            document.getElementById("endDate").setAttribute("min", minDate);
+            document.getElementById("endDate").setAttribute("max", maxDate);
+            document.getElementById("endDate").setAttribute("value", maxDate);
+
+        }
+
+        function getPreviousDate( nDay ) {
+
+            var today = new Date();
+            var pDate = new Date( today.setDate( today.getDate() - nDay ) );
+
+            var pYear = pDate.getFullYear();
+            var pMonth = pDate.getMonth() + 1;
+            var pDay = pDate.getDate();
+
+            var previousDate = pYear + "-" + fillZero( pMonth ) + "-" + fillZero( pDay );
+            console.log( "previousDay:", nDay, "previousDate:", previousDate );
+
+            return previousDate
+        }
+
+        function fillZero( digit ) {
+            return ( (digit < 10) ? "0" : "" ) + digit;
+        }
+
+        function CheckEnter( frm, objName ) {
+            var keycode = event.keyCode;        
+            var i = 0;
+   
+            if( keycode == 13 ){
+                for( i = 0; i < frm.length; ++i ){
+	                if( objName.name == frm[i].name )
+                      break;
+                }
+                frm[++i].focus();
+            }
+        }
+
+        var Server = 'http://3.37.118.232';
+        //Server = Server + ':5000';         // Test Server
+
+        var currentPageSize = 10;           // 페이지당 항목 수 초기값
+        var currentPage = 1;                // 현재 페이지 초기값
+
+        var response = 0;
+        var columnCount = 0;
+        var rowCount = 0;
+
+        function stocks_submitForm( act ) {
+            
+            var startDate = document.getElementById("startDate").value;
+            var endDate = document.getElementById("endDate").value;
+            var interval = document.getElementById("interval").value;
+            var exchange = document.getElementById("exchange").value;
+            var symbol = document.getElementById("symbol").value;
+
+            var query
+
+            if ( act == 'GetStocks' ) {
+                query = Server + "/Stocks" + "?startDate=" + startDate + "&endDate=" + endDate + "&interval=" + interval + "&exchange=" + exchange + "&symbol=" + symbol
+            } else if ( act == 'GetCompany' ) {
+                query = Server + "/Company/get" + "?exchange=" + exchange + "&symbol=" + symbol
+            } else if ( act == 'UpdateCompany' ) {
+                query = Server + "/Company/update" + "?exchange=" + exchange
+            } else if ( act == 'GetNews' ) {
+                query = Server + "/News" + "?startDate=" + startDate + "&endDate=" + endDate + "&exchange=" + exchange + "&symbol=" + symbol
+            }
+              
+            document.getElementById("Query").innerHTML = "API Query: " + query;
+            //document.getElementById("StockResultTable").getElementsByTagName('tbody')[0].innerHTML = "";
+            //document.getElementById("StockPageNumbers").innerHTML = "";
+            document.getElementById("NewsResultTable").getElementsByTagName('tbody')[0].innerHTML = "";
+            document.getElementById("NewsPageNumbers").innerHTML = "";
+
+            document.getElementById("StockResult").innerHTML = "Stocks:"
+            document.getElementById("NewsResult").innerHTML = "Company:"
+
+            // AJAX
+            var xhr = new XMLHttpRequest();
+            xhr.open( "GET", query, true );
+
+			xhr.onreadystatechange = function(){
+			
+				if( xhr.readyState === xhr.DONE ){
+
+					if( xhr.status === 200 ){
+
+						console.log('Success');
+
+                        if ( act == 'GetStocks' ) {
+
+                            //var response = JSON.parse(xhr.responseText);
+                            //var columnCount = Object.keys(response).length
+                            //var rowCount = Object.keys(response.date).length
+
+                            response = JSON.parse(xhr.responseText);
+                            columnCount = Object.keys(response).length
+                            rowCount = Object.keys(response.Close).length
+                            console.log( 'Response:', response, columnCount, rowCount )
+
+                            document.getElementById("StockResult").innerHTML = "Stocks Counts: " + rowCount;
+
+                            //currentPageSize = parseInt(pageSize);
+                            //currentPage = 1;
+
+                            listResponse()
+
+                        } else if ( act == 'GetCompany' || act == 'UpdateCompany' ) {
+
+                            response = JSON.parse(xhr.responseText);
+                            columnCount = Object.keys(response).length
+                            rowCount = Object.keys(response.company).length
+                            console.log( 'Response:', response, columnCount, rowCount )
+                           
+                            document.getElementById("NewsResult").innerHTML = "Company: " +  response.company[0];
+
+                        } else if ( act == 'GetNews' ) {
+
+                            //var response = JSON.parse(xhr.responseText);
+                            //var columnCount = Object.keys(response).length
+                            //var rowCount = Object.keys(response.date).length
+
+                            response = JSON.parse(xhr.responseText);
+                            columnCount = Object.keys(response).length
+                            rowCount = Object.keys(response.title).length
+                            console.log( 'Response:', response, columnCount, rowCount )
+
+                            document.getElementById("NewsResult").innerHTML = "News Counts: " + rowCount;
+
+                            //currentPageSize = parseInt(pageSize);
+                            //currentPage = 1;
+
+                            listResponse()
+
+                        }
+
+							 
+					} else {
+
+                        console.log( 'Fail' );
+
+                        response = JSON.parse(xhr.responseText);
+                        columnCount = Object.keys(response).length
+                        rowCount = Object.keys(response.message).length
+                        console.log( 'Response:', response, columnCount, rowCount )
+                           
+                        document.getElementById("NewsResult").innerHTML = "Company: " +  response.message[0];
+					}
+				}
+			};
+
+            xhr.send();
+        }
+
+        function listResponse() {
+
+            var timestamp = new Date().getTime();
+
+            console.log( 'listResponse(): PageSize:', currentPageSize, 'CurrentPage:', currentPage )
+
+            // Result
+            //var resultTable = document.getElementById("StockResultTable").getElementsByTagName('tbody')[0];
+            var resultTable = document.getElementById("NewsResultTable").getElementsByTagName('tbody')[0];
+            resultTable.innerHTML = "";
+
+            var startIdx = ( currentPage - 1 ) * currentPageSize;
+            var endIdx = startIdx + currentPageSize;
+            console.log( 'Idx:', startIdx, endIdx )
+
+            console.log( 'Response2:', response )
+
+            for ( var i = startIdx; (i < endIdx && i < rowCount); i++ ) {
+
+                var row = resultTable.insertRow( i - startIdx );
+                
+                //console.log( i, response.title[i], response.link[i], response.press[i], response.date[i] )
+
+                //row.insertCell(0).innerHTML = response.Date[i];
+                //row.insertCell(1).innerHTML = response.Open[i];
+                //row.insertCell(2).innerHTML = response.High[i];
+                //row.insertCell(3).innerHTML = response.Low[i];
+                //row.insertCell(4).innerHTML = response.Close[i];
+                //row.insertCell(5).innerHTML = response.Volume[i];
+
+                row.insertCell(0).innerHTML =  "<a href='" + response.link[i] +"'>" + response.title[i] + "</a>";
+                //row.insertCell(1).innerHTML =  "<a href='" + response.link[i] +"'>" + response.link[i] + "</a>";
+                row.insertCell(1).innerHTML = response.press[i];
+                //row.insertCell(3).innerHTML = response.date[i];
+                row.insertCell(2).innerHTML = getTimestamp2Str( response.date[i] );
+
+            }
+            // 페이지 번호 업데이트
+            updatePageNumbers(rowCount);
+
+        }
+
+        function getTimestamp2Str( timestamp ) {
+        
+            const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
+
+            var date = new Date( timestamp - KR_TIME_DIFF );
+
+            var date2str = date.getFullYear() + '-' + ( date.getMonth() + 1 ) + '-' + date.getDate() + ' ' +
+                           date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+            //console.log( 'Date: ' + date2str );
+
+            return date2str
+        
+        }
+
+
+        function updatePageNumbers( rowCount ) {
+
+            var totalPages = Math.ceil( rowCount / currentPageSize);
+            //var pageNumbers = document.getElementById("StockPageNumbers");
+            var pageNumbers = document.getElementById("NewsPageNumbers");
+            pageNumbers.innerHTML = "";
+
+            for ( var i = 1; i <= totalPages; i++ ) {
+
+                var pageLink = document.createElement("a");
+                pageLink.href = "#";
+                pageLink.innerText = i;
+                pageLink.onclick = function () {
+                    //document.getElementById("StockPageNumbers").value = this.innerText;
+                    document.getElementById("NewsPageNumbers").value = this.innerText;
+                    currentPage = parseInt(this.innerText)
+                    //console.log( "currentPage:", currentPage, this.innerText )
+                    //submitForm();
+                    listResponse();
+                };
+
+                if ( i === currentPage ) {
+                    pageLink.style.fontWeight = "bold";
+                }
+
+                pageNumbers.appendChild(pageLink);
+
+                if ( i < totalPages ) {
+                    pageNumbers.appendChild(document.createTextNode(" | "));
+                }
+            }
+        }
+
+        function classification_submitForm(){        
+
+            var data = document.articleForm.article.value; 
+
+            if( data=="" ){
+                alert("데이터 입력!");
+                document.articleForm.article.focus();
+                return;
+            }
+
+            document.getElementById("classification").innerHTML = "서버로부터 기사 분류중 (Please wait while classification...)";
+
+            // AJAX
+            var xhr = new XMLHttpRequest();
+
+            var query = Server + "/Classification"
+
+            xhr.open( "POST", query, true );
+
+            xhr.setRequestHeader( "Content-type", "application/x-www-form-urlencoded" ); 
+
+            xhr.onreadystatechange = function(){
+
+                if( xhr.readyState === xhr.DONE ){
+
+                    if( xhr.status === 200 ){
+
+                        console.log('Success');
+
+                        var response = xhr.responseText;
+
+                        document.getElementById("classification").innerHTML = "Classification: " + response;
+
+                        console.log( 'response:', response )
+
+                    } else {
+                        console.log( 'Fail' );
+                    }
+                }
+            };
+
+            xhr.send( "article=" + data );
+
+        }
+
+
+
+
+    </script>
+
+</body>
+</html>
